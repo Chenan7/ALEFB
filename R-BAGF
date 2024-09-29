@@ -1,0 +1,37 @@
+import torch
+import torch.nn as nn
+
+
+'''Bi-directional Adaptive Gated Fusion (BAGF).'''
+
+class BAGF(nn.Module):   
+
+    def __init__(self, in_channels, out_channels):
+        super(BAGF, self).__init__()
+
+        self.structure_gate = self._build_gate(in_channels, out_channels)
+        self.texture_gate = self._build_gate(in_channels, out_channels)
+
+        self.structure_gamma = nn.Parameter(torch.zeros(1))
+        self.texture_gamma = nn.Parameter(torch.zeros(1))
+
+        self.a = nn.Parameter(torch.tensor([0.5]))
+
+    def _build_gate(self, in_channels, out_channels):
+        '''Private method to create the gate block to reduce redundancy.'''
+        return nn.Sequential(
+            nn.Conv2d(in_channels=in_channels + in_channels, out_channels=out_channels, kernel_size=(1, 3), stride=1, padding=(0, 1)),
+            nn.Conv2d(in_channels=out_channels, out_channels=out_channels, kernel_size=(3, 1), stride=1, padding=(1, 0)),
+            nn.Sigmoid()
+        )
+
+    def forward(self, texture_feature, structure_feature):
+        energy = torch.cat((texture_feature, structure_feature), dim=1)
+
+        gate_structure_to_texture = self.structure_gate(energy)
+        gate_texture_to_structure = self.texture_gate(energy)
+
+        texture_feature = texture_feature + self.texture_gamma * (gate_structure_to_texture * structure_feature)
+        structure_feature = structure_feature + self.structure_gamma * (gate_texture_to_structure * texture_feature)
+
+        return torch.cat((self.a * texture_feature, (1 - self.a) * structure_feature), dim=1)
