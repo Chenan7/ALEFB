@@ -411,7 +411,7 @@ class ALEFBBlock(nn.Module):
         final_oup = self._block_args.output_filters
         self._project_conv = Conv2d(in_channels=oup, out_channels=final_oup, kernel_size=1, bias=False)
         self._bn2 = nn.BatchNorm2d(num_features=final_oup, momentum=self._bn_mom, eps=self._bn_eps)
-        self._swish = Mish()  # 替换为 Mish
+        self._swish = Mish()  # 替换为 Mish  代替了MemoryEfficientSwish()########
         self.add_argff = add_argff 
 
         if self.add_argff:
@@ -503,12 +503,13 @@ class ALEFBNetWithARGFF(nn.Module):
         self._avg_pooling = nn.AdaptiveAvgPool2d(1)
         self._dropblock = DropBlock(block_size=7, drop_prob=self._global_params.dropout_rate) 
         self._fc = nn.Linear(out_channels, self._global_params.num_classes)
-        self._swish = Mish() 
-
-def set_mish(self):  
-    for block in self._blocks:
-        block._swish = Mish()  
-
+        self._swish = MemoryEfficientSwish()
+        
+  def set_swish(self, memory_efficient=True):
+        self._swish = MemoryEfficientSwish() if memory_efficient else Swish()
+        for block in self._blocks:
+            block.set_swish(memory_efficient)
+            
 def extract_features(self, inputs):
     x = self._swish(self._bn0(self._conv_stem(inputs)))
     for idx, block in enumerate(self._blocks):
