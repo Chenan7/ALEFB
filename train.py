@@ -57,9 +57,10 @@ if __name__ == "__main__":
     #   resnet18、resnet34、resnet50、resnet101、resnet152
     #   vgg11、vgg13、vgg16、vgg11_bn、vgg13_bn、vgg16_bn、
     #   vit_b_16、
-    #   swin_transformer_tiny、swin_transformer_small、swin_transformer_base
+    #   swin_transformer_tiny、swin_transformer_small、swin_transformer_base、
+    #   alefb、argff
     #------------------------------------------------------#
-    backbone        = "effi"
+    backbone        = "alefb"
     #----------------------------------------------------------------------------------------------------------------------------#
     #   是否使用主干网络的预训练权重，此处使用的是主干的权重，因此是在模型构建的时候进行加载的。
     #   如果设置了model_path，则主干的权值无需加载，pretrained的值无意义。
