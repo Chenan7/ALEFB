@@ -60,12 +60,12 @@ class CA_Block(nn.Module):
     def forward(self, x):
         _, _, h, w = x.size()
         x_r = x
-        
-        x_h = torch.mean(x, dim = 3, keepdim = True).permute(0, 1, 3, 2)
-        x_w = torch.mean(x, dim = 2, keepdim = True)
-        x2=torch.cat((x_h, x_w), 3)
-        x1= self.r_bagf(x_h,x_w)
-        #print(x_h.shape,x_w.shape,x1.shape,x2.shape)
+
+        x_h = torch.mean(x, dim=3, keepdim=True).permute(0, 1, 3, 2)
+        x_w = torch.mean(x, dim=2, keepdim=True)
+        x2 = torch.cat((x_h, x_w), dim=3)
+
+        x1 = self.r_bagf(x_h, x_w)
         _, _, _, current_width = x1.size()
         new_width = current_width * 2
 
@@ -463,7 +463,7 @@ class MBConvBlock(nn.Module):
         if self.id_skip and self._block_args.stride == 1 and input_filters == output_filters:
             if drop_connect_rate:
                 x = drop_connect(x, p=drop_connect_rate, training=self.training)
-            # 使用自适应参数 alpha 和 1 - alpha
+            # 使用自适应参数 alpha 和 1 - alpha = beta
             x = self.alpha * x + (1 - self.alpha) * inputs
 
         if self.add_ca:
@@ -525,7 +525,7 @@ class EfficientNetWithCA(nn.Module):
         self._conv_head = Conv2d(in_channels, out_channels, kernel_size=1, bias=False)
         self._bn1 = nn.BatchNorm2d(num_features=out_channels, momentum=bn_mom, eps=bn_eps)
         self._avg_pooling = nn.AdaptiveAvgPool2d(1)
-        self._dropblock = DropBlock(block_size=7, drop_prob=self._global_params.dropout_rate)  ###############原来是nn.Dropout(self._global_params.dropout_rate)###########
+        self._dropblock = DropBlock(block_size=7, drop_prob=self._global_params.dropout_rate)
         self._fc = nn.Linear(out_channels, self._global_params.num_classes)
         self._swish = MemoryEfficientSwish()
 
@@ -584,25 +584,13 @@ class EfficientNetWithCA(nn.Module):
         if model_name not in valid_models:
             raise ValueError('model_name should be one of: ' + ', '.join(valid_models))
 
-def efficientnet1(pretrained=False, progress=True, num_classes=1000):
-    blocks_args, global_params = get_model_params('efficientnet-b0', override_params={})
+def efficientnet1(pretrained=False, progress=True, num_classes=10):
+    blocks_args, global_params = get_model_params(
+        'efficientnet-b0',
+        override_params={
+            'num_classes': num_classes,
+            'image_size': 320,
+        }
+    )
     model = EfficientNetWithCA(blocks_args, global_params)
-    
-    if num_classes != 1000:
-        model.classifier = nn.Sequential(
-            DropBlock(block_size=7, drop_prob=0.2),
-            nn.Linear(320, num_classes),
-        )
     return model
-
-if __name__ == '__main__':
-
-    inputs = torch.randn(5, 3, 512, 512)
-
-    # Test EfficientNet
-    model = EfficientNetWithCA.from_pretrained('efficientnet-b1')
-    inputs = torch.randn(4, 3, 512, 512)
-    P = model(inputs)
-    for idx, p in enumerate(P):
-        print('P{}: {}'.format(idx, p.size()))
-    print('# generator parameters:', sum(param.numel() for param in model.parameters()))
