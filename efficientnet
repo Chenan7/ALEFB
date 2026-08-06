@@ -579,26 +579,13 @@ class EfficientNet(nn.Module):
         if model_name not in valid_models:
             raise ValueError('model_name should be one of: ' + ', '.join(valid_models))
 
-def efficientnet1(pretrained=False, progress=True, num_classes=1000):
-    blocks_args, global_params = get_model_params('efficientnet-b0', override_params={})
+def efficientnet_baseline(pretrained=False, progress=True, num_classes=10):
+    blocks_args, global_params = get_model_params(
+        'efficientnet-b0',
+        override_params={
+            'num_classes': num_classes,
+            'image_size': 320,
+        }
+    )
     model = EfficientNet(blocks_args, global_params)
-    
-
-    if num_classes!=1000:
-        model.classifier = nn.Sequential(
-                nn.Dropout(0.2),
-                nn.Linear(320, num_classes),
-            )
     return model
-
-if __name__ == '__main__':
-
-    inputs = torch.randn(5, 3, 512, 512)
-
-    # Test EfficientNet
-    model = EfficientNet.from_pretrained('efficientnet-b1')
-    inputs = torch.randn(4, 3, 512, 512)
-    P = model(inputs)
-    for idx, p in enumerate(P):
-        print('P{}: {}'.format(idx, p.size()))
-    print('# generator parameters:', sum(param.numel() for param in model.parameters()))
